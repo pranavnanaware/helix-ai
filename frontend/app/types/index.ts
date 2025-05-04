@@ -1,38 +1,3 @@
-export interface Folder {
-  id: string;
-  name: string;
-  created_at: string;
-  status: 'active' | 'deleted';
-  files?: File[];
-}
-
-export interface File {
-  id: string;
-  folder_id: string;
-  filename: string;
-  storage_path: string;
-  size: number;
-  status: 'processing' | 'vectorized' | 'error';
-  created_at: string;
-  vectorized_at?: string;
-  error_message?: string;
-}
-
-// Alias for File to avoid conflicts with global File type
-export type FileMetadata = File;
-
-export interface Embedding {
-  id: string;
-  file_id: string;
-  embedding: number[];
-  created_at: string;
-}
-
-export interface SearchResult {
-  file_id: string;
-  similarity: number;
-} 
-
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -53,6 +18,7 @@ export interface ChatResponse {
   role: string;
   sequence: Sequence;
   finish_reason: string;
+  type: 'chat' | 'sequence_created' | 'sequence_updated';
 }
 
 export interface Sequence {
@@ -60,18 +26,36 @@ export interface Sequence {
   title: string;
   description: string;
   content: string;
-  steps: Step[];
-}
-
-export interface Step {
-  content: string;
-  delay_days: string;
-  step_number: string;
-  type: string;
-  step_title: string;
+  steps: Array<{
+    step_title: string;
+    content: string;
+    delay_days: string;
+    step_number: string;
+    type: string;
+  }>;
 }
 
 export interface ChatMessage {
   text: string;
   sender: 'user' | 'ai';
+}
+
+
+export interface SequenceCardProps {
+  sequence: Sequence;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUpdate: (updates: Partial<Sequence['steps'][0]>) => void;
+}
+
+export type Page = 'workspace' | 'past-sequences' | 'settings';
+
+export interface DashboardProps {
+  sequences: Sequence[];
+  onSequenceUpdate: (sequence: Sequence) => void;
+}
+
+export interface HeaderProps {
+  currentPage: Page;
+  setCurrentPage: (page: Page) => void;
 }

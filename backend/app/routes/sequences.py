@@ -19,6 +19,18 @@ def create_sequence():
         if 'steps' not in data:
             return jsonify({"error": "Steps are required"}), 400
             
+        # Validate steps array
+        if not isinstance(data['steps'], list):
+            return jsonify({"error": "Steps must be an array"}), 400
+            
+        for step in data['steps']:
+            if not isinstance(step, dict):
+                return jsonify({"error": "Each step must be an object"}), 400
+            required_fields = ['content', 'delay_days', 'step_number', 'type', 'step_title']
+            for field in required_fields:
+                if field not in step:
+                    return jsonify({"error": f"Step is missing required field: {field}"}), 400
+            
         sequence = sequence_service.create_sequence(
             title=data['title'],
             description=data['description'],
@@ -38,6 +50,24 @@ def update_sequence(sequence_id: str):
         if not data:
             return jsonify({"error": "No data provided"}), 400
             
+        # Validate sequence exists
+        existing_sequence = sequence_service.get_sequence(sequence_id)
+        if not existing_sequence:
+            return jsonify({"error": "Sequence not found"}), 404
+            
+        # Validate steps if provided
+        if 'steps' in data:
+            if not isinstance(data['steps'], list):
+                return jsonify({"error": "Steps must be an array"}), 400
+                
+            for step in data['steps']:
+                if not isinstance(step, dict):
+                    return jsonify({"error": "Each step must be an object"}), 400
+                required_fields = ['content', 'delay_days', 'step_number', 'type', 'step_title']
+                for field in required_fields:
+                    if field not in step:
+                        return jsonify({"error": f"Step is missing required field: {field}"}), 400
+            
         sequence = sequence_service.update_sequence(sequence_id, data)
         return jsonify(sequence)
         
@@ -52,6 +82,21 @@ def get_sequence(sequence_id: str):
             return jsonify({"error": "Sequence not found"}), 404
             
         return jsonify(sequence)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@bp.route('/sequences/<sequence_id>', methods=['DELETE'])
+def delete_sequence(sequence_id: str):
+    try:
+        # Validate sequence exists
+        existing_sequence = sequence_service.get_sequence(sequence_id)
+        if not existing_sequence:
+            return jsonify({"error": "Sequence not found"}), 404
+            
+        # Soft delete by setting is_active to false
+        sequence = sequence_service.update_sequence(sequence_id, {'is_active': False})
+        return jsonify({"message": "Sequence deleted successfully"})
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -93,6 +138,11 @@ def edit_sequence_with_gpt(sequence_id: str):
         data = request.get_json()
         if not data or 'prompt' not in data:
             return jsonify({"error": "Prompt is required"}), 400
+            
+        # Validate sequence exists
+        existing_sequence = sequence_service.get_sequence(sequence_id)
+        if not existing_sequence:
+            return jsonify({"error": "Sequence not found"}), 404
             
         result = gpt_service.edit_sequence(sequence_id, data['prompt'])
         return jsonify(result)

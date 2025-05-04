@@ -3,9 +3,6 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from app.config.supabase import init_supabase
-from app.routes.folders import bp as folder_bp
-from app.routes.files import bp as file_bp
-from app.routes.embeddings import bp as embedding_bp
 from app.routes.chat_routes import chat_bp
 from app.routes.sequences import bp as sequence_bp
 
@@ -35,9 +32,7 @@ def create_app():
     init_supabase()
 
     # Register blueprints
-    app.register_blueprint(folder_bp, url_prefix='/api')
-    app.register_blueprint(file_bp, url_prefix='/api')
-    app.register_blueprint(embedding_bp, url_prefix='/api')
+
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(sequence_bp, url_prefix='/api')
 

@@ -9,36 +9,6 @@ create table if not exists users (
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create folders table
-create table if not exists folders (
-    id uuid primary key default uuid_generate_v4(),
-    name text not null,
-    status text not null default 'active',
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Create files table
-create table if not exists files (
-    id uuid primary key default uuid_generate_v4(),
-    folder_id uuid references folders(id) on delete cascade not null,
-    filename text not null,
-    storage_path text not null,
-    size integer not null,
-    status text not null default 'processing',
-    error_message text,
-    vectorized_at timestamp with time zone,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Create vectors table
-create table if not exists vectors (
-    id uuid primary key default uuid_generate_v4(),
-    file_id uuid references files(id) on delete cascade not null,
-    chunk_index integer not null,
-    text text not null,
-    vector vector(384) not null,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
 
 -- Create messages table
 create table if not exists messages (

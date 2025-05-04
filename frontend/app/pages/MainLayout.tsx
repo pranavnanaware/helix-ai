@@ -7,6 +7,7 @@ import { Sequence } from '../types';
 
 const MainLayout: React.FC = () => {
   const [sequences, setSequences] = useState<Sequence[]>([]);
+  const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
 
   const handleSequenceUpdate = (sequence: Sequence) => {
     setSequences(prev => {
@@ -15,19 +16,27 @@ const MainLayout: React.FC = () => {
         const updated = [...prev];
         updated[existingIndex] = sequence;
         return updated;
-      } else {
-        return [...prev, sequence];
       }
+      return [...prev, sequence];
     });
   };
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <div style={{ width: '35%', borderRight: '1px solid #ccc', padding: '10px' }}>
-        <ChatInterface onSequenceCreated={handleSequenceUpdate} />
+        <ChatInterface 
+          sequences={sequences} 
+          onSequenceCreated={handleSequenceUpdate} 
+          selectedSequence={selectedSequence}
+        />
       </div>
       <div style={{ width: '65%' }}>
-        <Dashboard sequences={sequences} onSequenceUpdate={handleSequenceUpdate} />
+        <Dashboard 
+          sequences={sequences} 
+          onSequenceUpdate={handleSequenceUpdate} 
+          selectedSequence={selectedSequence}
+          setSelectedSequence={setSelectedSequence}
+        />
       </div>
     </div>
   );

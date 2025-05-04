@@ -40,10 +40,13 @@ def chat(session_id: str):
             return jsonify({"error": "Message is required"}), 400
             
         message = data['message']
+        sequence_id = data.get('sequenceId')  # Extract sequence_id from request body
+        
         # Get response from GPT service
         response = gpt_service.chat_completion(
             session_id=session_id,
             message=message,
+            sequence_id=sequence_id
         )
         
         return jsonify(response)

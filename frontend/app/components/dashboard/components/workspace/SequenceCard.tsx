@@ -2,14 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
-import { Sequence } from '../../../../types';
+import { SequenceCardProps } from '../../../../types';
 
-interface SequenceCardProps {
-  sequence: Sequence;
-  isSelected: boolean;
-  onSelect: () => void;
-  onUpdate: (updates: Partial<Sequence['steps'][0]>) => void;
-}
 
 const SequenceCard: React.FC<SequenceCardProps> = ({
   sequence,
