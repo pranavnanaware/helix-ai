@@ -9,7 +9,8 @@ class SequenceService:
         title: str,
         description: str,
         steps: List[Dict[str, Any]],
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        status: str = 'DRAFT'
     ) -> Dict[str, Any]:
         """Create a new sequence."""
         try:
@@ -21,6 +22,7 @@ class SequenceService:
                 'steps': steps,
                 'metadata': metadata or {},
                 'is_active': True,
+                'status': status,
                 'created_at': datetime.utcnow().isoformat(),
                 'updated_at': datetime.utcnow().isoformat()
             }
@@ -75,7 +77,8 @@ class SequenceService:
     def list_sequences(
         limit: int = 10,
         offset: int = 0,
-        active_only: bool = True
+        active_only: bool = True,
+        status: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """List sequences with optional filtering."""
         try:
@@ -87,6 +90,8 @@ class SequenceService:
                 
             if active_only:
                 query = query.eq('is_active', True)
+            if status:
+                query = query.eq('status', status)
                 
             result = query.execute()
             return result.data

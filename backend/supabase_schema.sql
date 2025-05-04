@@ -29,6 +29,20 @@ create table if not exists sessions (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Create sequences table
+create table if not exists sequences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT,
+    content TEXT,
+    steps JSONB,
+    metadata JSONB,
+    is_active BOOLEAN DEFAULT true,
+    status TEXT DEFAULT 'DRAFT',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes
 create index if not exists idx_files_folder_id on files(folder_id);
 create index if not exists idx_vectors_file_id on vectors(file_id);

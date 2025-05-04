@@ -6,6 +6,7 @@ export interface ListSequencesParams {
   limit?: number;
   offset?: number;
   active_only?: boolean;
+  status?: string;
 }
 
 export const sequenceApi = {
@@ -70,8 +71,9 @@ export const sequenceApi = {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.offset) queryParams.append('offset', params.offset.toString());
     if (params.active_only !== undefined) queryParams.append('active_only', params.active_only.toString());
+    if (params.status) queryParams.append('status', params.status);
 
-      const response = await fetch(`${API_BASE_URL}/sequences?${queryParams.toString()}`);
+    const response = await fetch(`${API_BASE_URL}/sequences?${queryParams.toString()}`);
 
     if (!response.ok) {
       const error = await response.json();

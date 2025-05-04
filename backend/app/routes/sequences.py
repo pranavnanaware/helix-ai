@@ -35,7 +35,8 @@ def create_sequence():
             title=data['title'],
             description=data['description'],
             steps=data['steps'],
-            metadata=data.get('metadata')
+            metadata=data.get('metadata'),
+            status=data.get('status', 'DRAFT')
         )
         
         return jsonify(sequence), 201
@@ -107,11 +108,13 @@ def list_sequences():
         limit = request.args.get('limit', default=10, type=int)
         offset = request.args.get('offset', default=0, type=int)
         active_only = request.args.get('active_only', default='true').lower() == 'true'
+        status = request.args.get('status')
         
         sequences = sequence_service.list_sequences(
             limit=limit,
             offset=offset,
-            active_only=active_only
+            active_only=active_only,
+            status=status
         )
         
         return jsonify({"sequences": sequences})

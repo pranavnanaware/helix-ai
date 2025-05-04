@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { HeaderProps, Page } from '@/app/types';
 
-const pages: Page[] = ['workspace', 'past-sequences', 'settings'];
+const pages: Page[] = ['workspace', 'past-sequences'];
 
 export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage }) => (
   <div className="p-3 border-b border-gray-800 flex justify-between items-center">

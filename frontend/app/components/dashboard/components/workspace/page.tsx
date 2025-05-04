@@ -65,7 +65,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         content: step.content,
         steps: [step],
         parentId: sequence.id,
-        stepNumber: step.step_number
+        stepNumber: step.step_number,
+        status: sequence.status,
+        is_active: sequence.is_active
       }))
     ),
     [sequences]
@@ -176,10 +178,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         title: newSequence.title,
         description: newSequence.description,
         content: newSequence.steps.map(step => step.content).join('\n\n'),
-        steps: newSequence.steps
+        steps: newSequence.steps,
+        status: 'DRAFT',
+        is_active: true
       });
 
-      // Create a new array with just the new sequence
       onSequenceUpdate(sequence);
       setSelectedSequence(sequence);
       setIsCreating(false);
@@ -211,6 +214,35 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   };
 
+  const handlePublishSequence = async (sequenceId: string) => {
+    try {
+      const sequence = sequences.find(s => s.id === sequenceId);
+      if (!sequence) return;
+
+      const updatedSequence = await updateSequence(sequenceId, {
+        ...sequence,
+        status: 'PUBLISHED'
+      });
+      onSequenceUpdate(updatedSequence);
+      setSelectedSequence(null);
+      setIsCreating(false);
+      setNewSequence({
+        title: '',
+        description: '',
+        steps: [{
+          step_title: '',
+          content: '',
+          delay_days: '1',
+          step_number: '1',
+          type: 'email'
+        }]
+      });
+    } catch (error) {
+      console.error('Failed to publish sequence:', error);
+      alert('Failed to publish sequence. Please try again.');
+    }
+  };
+
   return (
     <div className="flex flex-col p-4">
       <div className="flex flex-row items-center justify-between">
@@ -218,9 +250,19 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         {!isCreating && (
           <div className='flex flex-row gap-4'>
             {activeSequence && (
-              <button onClick={() => handleDeleteSequence(activeSequence.id)}>
-                <Trash size={20} />
-              </button>
+              <>
+                <button onClick={() => handleDeleteSequence(activeSequence.id)}>
+                  <Trash size={20} />
+                </button>
+                {activeSequence.status === 'DRAFT' && (
+                  <button 
+                    className="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition-colors"
+                    onClick={() => handlePublishSequence(activeSequence.id)}
+                  >
+                    Publish Campaign
+                  </button>
+                )}
+              </>
             )}
             <button 
               className="bg-rose-500 text-white px-2 py-1 rounded-md hover:bg-rose-600 transition-colors"
@@ -375,7 +417,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             {stepSequences.map((sequence) => (
               <SequenceCard
                 key={sequence.id}
-                sequence={sequence}
+                sequence={{
+                  ...sequence,
+                  status: sequence.status || 'defaultStatus', // Provide a default value for status
+                  is_active: sequence.is_active !== undefined ? sequence.is_active : true // Provide a default value for is_active
+                }}
                 isSelected={activeSequence?.id === sequence.parentId}
                 onSelect={() => setSelectedSequence(sequences.find(s => s.id === sequence.parentId) || null)}
                 onUpdate={(updates) => handleStepUpdate(sequence, updates)}

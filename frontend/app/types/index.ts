@@ -34,6 +34,8 @@ export interface Sequence {
     type: string;
     is_deleted?: boolean;
   }>;
+  status: 'DRAFT' | 'PUBLISHED';
+  is_active: boolean;
 }
 
 export interface ChatMessage {

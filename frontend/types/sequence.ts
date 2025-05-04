@@ -4,6 +4,8 @@ export interface Sequence {
   description: string;
   content: string;
   steps: Step[];
+  status: 'DRAFT' | 'PUBLISHED';
+  is_active: boolean;
 }
 
 export interface Step {
@@ -19,8 +21,11 @@ export interface CreateSequenceData {
   description: string;
   content: string;
   steps: Step[];
+  status?: 'DRAFT' | 'PUBLISHED';
+  is_active?: boolean;
 }
 
 export interface UpdateSequenceData extends Partial<CreateSequenceData> {
   is_active?: boolean;
+  status?: 'DRAFT' | 'PUBLISHED';
 } 

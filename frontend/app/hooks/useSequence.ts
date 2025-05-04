@@ -61,7 +61,12 @@ export const useSequence = () => {
     }
   };
 
-  const listSequences = async (params?: { limit?: number; offset?: number; active_only?: boolean }) => {
+  const listSequences = async (params?: { 
+    limit?: number; 
+    offset?: number; 
+    active_only?: boolean;
+    status?: string;
+  }) => {
     setIsLoading(true);
     setError(null);
     try {
