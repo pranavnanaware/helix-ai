@@ -1,13 +1,10 @@
 'use client'
 
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent, useEffect } from 'react';
 import { Send, Trash2 } from 'lucide-react';
+import { createSession, sendMessage, getMessages} from '../services/chat';
+import { Message, ChatMessage, Sequence } from '../types';
 
-// Types
-interface Message {
-  text: string;
-  sender: 'user' | 'ai';
-}
 
 // Components
 const ChatHeader: React.FC<{ onClear: () => void }> = ({ onClear }) => (
@@ -23,7 +20,7 @@ const ChatHeader: React.FC<{ onClear: () => void }> = ({ onClear }) => (
   </div>
 );
 
-const MessageBubble: React.FC<{ message: Message }> = ({ message }) => (
+const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => (
   <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
     <div className="max-w-[80%]">
       <div className={`rounded-2xl px-3 py-2 ${
@@ -66,36 +63,83 @@ const ChatInput: React.FC<{
   </div>
 );
 
-// Main Component
-const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      text: "Hello! I'm your AI recruiting assistant. How can I help you today?",
-      sender: 'ai'
-    },
-    {
-      text: "I need help with finding candidates for a software engineering position.",
-      sender: 'user'
-    },
-    {
-      text: "I'd be happy to help! Could you please provide more details about the position requirements?",
-      sender: 'ai'
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
+interface ChatInterfaceProps {
+  onSequenceCreated: (sequence: Sequence) => void;
+}
 
-  const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      setMessages(prev => [...prev, { text: inputMessage, sender: 'user' }]);
-      setInputMessage('');
-      
-      // Simulate AI response
-      setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          text: "I understand. Let me help you with that.", 
-          sender: 'ai' 
+// Main Component
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSequenceCreated }) => {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const initializeChat = async () => {
+      try {
+        console.log('Initializing chat...');
+        // Create a new session
+        const session = await createSession(
+          'Recruiting Assistant Chat',
+          {
+            role: 'recruiting_assistant',
+            context: 'You are a helpful AI assistant specialized in recruitment and sales.'
+          }
+        );
+        setSessionId(session.session_id);
+        
+        // Load initial messages
+        const initialMessages = await getMessages(session.session_id);
+        console.log('Initial messages loaded:', initialMessages);
+        setMessages(initialMessages.map((msg: Message) => ({
+          text: msg.message,
+          sender: msg.role === 'user' ? 'user' : 'ai'
+        })));
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        // Fallback to default message
+        setMessages([{
+          text: "Hello! I'm your AI recruiting assistant. How can I help you today?",
+          sender: 'ai'
         }]);
-      }, 1000);
+      }
+    };
+
+    initializeChat();
+  }, []);
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !sessionId) {
+      console.log('Cannot send message:', { inputMessage, sessionId });
+      return;
+    }
+
+    const userMessage = inputMessage;
+    setInputMessage('');
+    setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
+    setIsLoading(true);
+
+    try {
+      console.log('Sending message to session:', sessionId);
+      const response = await sendMessage(sessionId, userMessage);
+      console.log('Received response:', response);
+      setMessages(prev => [...prev, { 
+        text: response.message,
+        sender: 'ai'
+      }]);
+
+      // If a sequence was created or updated, notify the parent
+      if (response.sequence) {
+        onSequenceCreated(response.sequence);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, { 
+        text: "I'm sorry, I encountered an error. Please try again.",
+        sender: 'ai'
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,11 +150,28 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleClearChat = () => {
-    setMessages([{
-      text: "Hello! I'm your AI recruiting assistant. How can I help you today?",
-      sender: 'ai'
-    }]);
+  const handleClearChat = async () => {
+    if (!sessionId) return;
+    
+    try {
+      // Create a new session
+      const session = await createSession(
+        'Recruiting Assistant Chat',
+        {
+          role: 'recruiting_assistant',
+          context: 'You are a helpful AI assistant specialized in recruitment and sales.'
+        }
+      );
+      setSessionId(session.session_id);
+      
+      // Reset messages
+      setMessages([{
+        text: "Hello! I'm your AI recruiting assistant. How can I help you today?",
+        sender: 'ai'
+      }]);
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+    }
   };
 
   return (
@@ -121,6 +182,15 @@ const ChatInterface: React.FC = () => {
         {messages.map((message, index) => (
           <MessageBubble key={index} message={message} />
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%]">
+              <div className="bg-gray-800 text-white rounded-2xl px-3 py-2 rounded-tl-none">
+                <p>Thinking...</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <ChatInput

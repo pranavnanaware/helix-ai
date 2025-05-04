@@ -19,6 +19,9 @@ RESUMES_BUCKET = 'resumes'
 FOLDERS_TABLE = 'folders'
 FILES_TABLE = 'files'
 EMBEDDINGS_TABLE = 'vectors'
+MESSAGES_TABLE = 'messages'
+SESSIONS_TABLE = 'sessions'
+SEQUENCES_TABLE = 'sequences'
 
 def init_supabase():
     """Initialize Supabase storage and database tables if they don't exist."""

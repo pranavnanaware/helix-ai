@@ -8,7 +8,7 @@ import { Folder, FileMetadata } from '../../../../types';
 
 interface ResumesViewProps {
   folders: Folder[];
-  selectedFolder: Folder | null;
+  selectedFolder: Folder,
   onFolderSelect: (folder: Folder | null) => void;
   onFolderDelete: (folderId: string) => void;
   onFileUpload: (folderId: string, e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -60,7 +60,7 @@ export const ResumesView: React.FC<ResumesViewProps> = ({
             isSelected={selectedFolder?.id === folder.id}
             onSelect={() => onFolderSelect(folder)}
             onDelete={() => onFolderDelete(folder.id)}
-          />
+            />
         ))}
       </div>
 

@@ -1,16 +1,19 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { Page } from '../types';
+
+type Page = 'workspace' | 'past-sequences' | 'resumes' | 'settings';
 
 interface HeaderProps {
   currentPage: Page;
   setCurrentPage: (page: Page) => void;
 }
 
+const pages: Page[] = ['workspace', 'past-sequences', 'resumes'];
+
 export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage }) => (
   <div className="p-3 border-b border-gray-800 flex justify-between items-center">
     <div className="flex gap-2">
-      {(['sequence-editor', 'past-sequences', 'resumes'] as const).map((page) => (
+      {pages.map((page) => (
         <button
           key={page}
           onClick={() => setCurrentPage(page)}

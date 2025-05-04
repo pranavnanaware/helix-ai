@@ -1,16 +1,18 @@
 import axios from 'axios';
 import { Folder, FileMetadata } from '../types';
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
+export const api = axios.create({
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true
 });
 
-// Add a response interceptor to handle CORS errors
+// Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -144,7 +146,7 @@ export const subscribeToFileStatus = (
   onUpdate: (status: FileStatus) => void,
   onError?: (error: Error) => void
 ) => {
-  const eventSource = new EventSource(`${API_BASE_URL}/files/${fileId}/status`);
+  const eventSource = new EventSource(`${baseURL}/files/${fileId}/status`);
 
   eventSource.onmessage = (event) => {
     const status = JSON.parse(event.data) as FileStatus;
@@ -165,10 +167,6 @@ export const subscribeToFileStatus = (
     eventSource.close();
   };
 };
-
-
-
-
 
 export const apiService = {
   // Folders

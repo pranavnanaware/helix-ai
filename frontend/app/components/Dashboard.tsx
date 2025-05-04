@@ -1,18 +1,23 @@
 'use client'
 
 import React, { useState } from 'react';
-import { Folder as FolderType } from '../types';
+import { Folder as FolderType, Sequence } from '../types';
 import { ResumesView } from './dashboard/components/resumes/ResumesView';
 import { Header } from './dashboard/components/Header';
 import { SettingsView } from './dashboard/components/settings/SettingsView';
 import { useFolders } from '../hooks/useFolders';
 import { useFiles } from '../hooks/useFiles';
-
+import { Workspace } from './dashboard/components/workspace/page';
 // Types
-type Page = 'resumes' | 'settings';
+type Page = 'workspace' | 'resumes' | 'settings' | 'past-sequences';
 
-const Dashboard: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>('resumes');
+interface DashboardProps {
+  sequences: Sequence[];
+  onSequenceUpdate: (sequence: Sequence) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ sequences, onSequenceUpdate }) => {
+  const [currentPage, setCurrentPage] = useState<Page>('workspace');
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   
   const { folders, isLoading, error, createFolder, deleteFolder } = useFolders();
@@ -51,11 +56,13 @@ const Dashboard: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
+      case 'workspace':
+        return <Workspace sequences={sequences} onSequenceUpdate={onSequenceUpdate} />;
       case 'resumes':
         return (
           <ResumesView
             folders={folders as FolderType[]}
-            selectedFolder={selectedFolder}
+            selectedFolder={selectedFolder as FolderType}
             onFolderSelect={setSelectedFolder}
             onFolderDelete={handleDeleteFolder}
             onFileUpload={handleFileUpload}

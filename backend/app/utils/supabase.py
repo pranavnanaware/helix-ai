@@ -8,36 +8,15 @@ def get_supabase_client() -> Client:
     key = current_app.config['SUPABASE_KEY']
     return create_client(url, key)
 
-def get_user_by_email(email: str):
-    """Get a user by email."""
-    supabase = get_supabase_client()
-    response = supabase.table('users').select('*').eq('email', email).execute()
-    return response.data[0] if response.data else None
-
-def create_user(email: str, password_hash: str):
-    """Create a new user."""
-    supabase = get_supabase_client()
-    response = supabase.table('users').insert({
-        'email': email,
-        'password': password_hash
-    }).execute()
-    return response.data[0] if response.data else None
-
-def create_folder(user_id: str, name: str):
+def create_folder(name: str):
     """Create a new folder."""
     supabase = get_supabase_client()
     response = supabase.table('folders').insert({
-        'user_id': user_id,
         'name': name,
         'status': 'active'  # active, processing, disabled
     }).execute()
     return response.data[0] if response.data else None
 
-def get_user_folders(user_id: str):
-    """Get all folders for a user."""
-    supabase = get_supabase_client()
-    response = supabase.table('folders').select('*').eq('user_id', user_id).execute()
-    return response.data
 
 def update_folder_status(folder_id: str, status: str):
     """Update folder status."""
@@ -53,13 +32,13 @@ def delete_folder(folder_id: str):
     response = supabase.table('folders').delete().eq('id', folder_id).execute()
     return response.data[0] if response.data else None
 
-def upload_file_to_storage(file_path: str, user_id: str, filename: str) -> str:
+def upload_file_to_storage(file_path: str, filename: str) -> str:
     """Upload file to Supabase storage and return the URL."""
     supabase = get_supabase_client()
     with open(file_path, 'rb') as f:
         file_data = f.read()
     
-    storage_path = f"users/{user_id}/{filename}"
+    storage_path = f"/{filename}"
     response = supabase.storage.from_('files').upload(storage_path, file_data)
     
     if response.error:

@@ -32,3 +32,46 @@ export interface SearchResult {
   file_id: string;
   similarity: number;
 } 
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  message: string;
+  sequence: Sequence;
+  created_at: string;
+}
+
+export interface Session {
+  session_id: string;
+  title: string;
+  context: Record<string, any>;
+  created_at: string;
+}
+
+export interface ChatResponse {
+  message: string;
+  role: string;
+  sequence: Sequence;
+  finish_reason: string;
+}
+
+export interface Sequence {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  steps: Step[];
+}
+
+export interface Step {
+  content: string;
+  delay_days: string;
+  step_number: string;
+  type: string;
+  step_title: string;
+}
+
+export interface ChatMessage {
+  text: string;
+  sender: 'user' | 'ai';
+}
