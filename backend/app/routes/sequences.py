@@ -95,7 +95,7 @@ def delete_sequence(sequence_id: str):
             return jsonify({"error": "Sequence not found"}), 404
             
         # Soft delete by setting is_active to false
-        sequence = sequence_service.update_sequence(sequence_id, {'is_active': False})
+        sequence = sequence_service.delete_sequence(sequence_id)
         return jsonify({"message": "Sequence deleted successfully"})
         
     except Exception as e:

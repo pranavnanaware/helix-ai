@@ -32,6 +32,7 @@ export interface Sequence {
     delay_days: string;
     step_number: string;
     type: string;
+    is_deleted?: boolean;
   }>;
 }
 

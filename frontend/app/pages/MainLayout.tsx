@@ -21,6 +21,13 @@ const MainLayout: React.FC = () => {
     });
   };
 
+  const handleSequenceDelete = (deletedId: string) => {
+    setSequences(prev =>
+      prev.filter(s => s.id !== deletedId)
+    );
+    setSelectedSequence(null);
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <div style={{ width: '35%', borderRight: '1px solid #ccc', padding: '10px' }}>
@@ -36,6 +43,7 @@ const MainLayout: React.FC = () => {
           onSequenceUpdate={handleSequenceUpdate} 
           selectedSequence={selectedSequence}
           setSelectedSequence={setSelectedSequence}
+          onSequenceDelete={handleSequenceDelete}
         />
       </div>
     </div>

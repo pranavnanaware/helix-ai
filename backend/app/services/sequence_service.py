@@ -92,6 +92,21 @@ class SequenceService:
             return result.data
         except Exception as e:
             raise Exception(f"Error listing sequences: {str(e)}")
+        
+    @staticmethod
+    def delete_sequence(sequence_id: str) -> None:
+        """Delete a sequence by ID."""
+        try:
+            result = supabase.table(SEQUENCES_TABLE)\
+                .delete()\
+                .eq('id', sequence_id)\
+                .execute()
+            
+            if not result.data:
+                raise Exception("Failed to delete sequence")
+            return result.data
+        except Exception as e:
+            raise Exception(f"Error deleting sequence: {str(e)}")
 
 # Create a singleton instance
 sequence_service = SequenceService()

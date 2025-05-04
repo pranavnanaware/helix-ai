@@ -13,13 +13,15 @@ interface WorkspaceProps {
     onSequenceUpdate: (sequence: Sequence) => void;
     selectedSequence: Sequence | null;
     setSelectedSequence: (sequence: Sequence | null) => void;
+    onSequenceDelete: (sequenceId: string) => void;
 }
 
 export const Workspace: React.FC<WorkspaceProps> = ({ 
   sequences, 
   onSequenceUpdate,
   selectedSequence,
-  setSelectedSequence
+  setSelectedSequence,
+  onSequenceDelete
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newSequence, setNewSequence] = useState<Partial<Sequence>>({
@@ -104,14 +106,31 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const handleStepUpdate = async (stepSequence: any, updates: Partial<Sequence['steps'][0]>) => {
     const parentSequence = sequences.find(s => s.id === stepSequence.parentId);
     if (parentSequence) {
-      const updatedSteps = parentSequence.steps.map(step => 
-        step.step_number === stepSequence.stepNumber ? { ...step, ...updates } : step
-      );
-      const updatedSequence = await updateSequence(parentSequence.id, {
-        ...parentSequence,
-        steps: updatedSteps
-      });
-      onSequenceUpdate(updatedSequence);
+      if (updates.is_deleted) {
+        // Remove the step from the sequence
+        const updatedSteps = parentSequence.steps.filter(step => 
+          step.step_number !== stepSequence.stepNumber
+        );
+        // Update step numbers for remaining steps
+        const renumberedSteps = updatedSteps.map((step, index) => ({
+          ...step,
+          step_number: (index + 1).toString()
+        }));
+        const updatedSequence = await updateSequence(parentSequence.id, {
+          ...parentSequence,
+          steps: renumberedSteps
+        });
+        onSequenceUpdate(updatedSequence);
+      } else {
+        const updatedSteps = parentSequence.steps.map(step => 
+          step.step_number === stepSequence.stepNumber ? { ...step, ...updates } : step
+        );
+        const updatedSequence = await updateSequence(parentSequence.id, {
+          ...parentSequence,
+          steps: updatedSteps
+        });
+        onSequenceUpdate(updatedSequence);
+      }
     }
   };
 
@@ -182,8 +201,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const handleDeleteSequence = async (sequenceId: string) => {
     try {
       await deleteSequence(sequenceId);
-      // Update the parent component with an empty sequence to trigger a re-render
-      onSequenceUpdate({ id: '', title: '', description: '', content: '', steps: [] });
+      setSelectedSequence(null);
+      onSequenceDelete(sequenceId);
     } catch (error) {
       console.error('Failed to delete sequence:', error);
       alert('Failed to delete sequence. Please try again.');
@@ -302,17 +321,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                     />
                   </div>
 
-                  <div>
-                    <select
-                      value={step.type}
-                      onChange={(e) => handleNewStepUpdate(index, 'type', e.target.value)}
-                      className="w-full bg-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    >
-                      <option value="email">Email</option>
-                      <option value="linkedin">LinkedIn</option>
-                      <option value="call">Call</option>
-                    </select>
-                  </div>
                 </div>
               </div>
             ))}
@@ -358,6 +366,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           strategy={verticalListSortingStrategy}
         >
           <div className="mt-8 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">{selectedSequence?.title}</h2>
+            <p className="text-sm text-gray-400">{selectedSequence?.description}</p>
+          </div>
             {stepSequences.map((sequence) => (
               <SequenceCard
                 key={sequence.id}

@@ -11,13 +11,15 @@ interface DashboardProps {
   onSequenceUpdate: (sequence: Sequence) => void;
   selectedSequence: Sequence | null;
   setSelectedSequence: (sequence: Sequence | null) => void;
+  onSequenceDelete: (sequenceId: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
   sequences,
   onSequenceUpdate,
   selectedSequence,
-  setSelectedSequence
+  setSelectedSequence,
+  onSequenceDelete
 }) => {
   const [currentPage, setCurrentPage] = useState<Page>('workspace');
 
@@ -30,6 +32,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             onSequenceUpdate={onSequenceUpdate}
             selectedSequence={selectedSequence}
             setSelectedSequence={setSelectedSequence}
+            onSequenceDelete={onSequenceDelete}
           />
         );
       case 'past-sequences':

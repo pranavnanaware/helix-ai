@@ -50,7 +50,6 @@ export const useChat = ({ onSequenceCreated }: UseChatProps = {}) => {
       console.log('Cannot send message:', { inputMessage, sessionId });
       return;
     }
-    console.log(sequenceId);
     const userMessage = inputMessage;
     setInputMessage('');
     setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);

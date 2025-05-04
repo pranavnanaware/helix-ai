@@ -11,16 +11,44 @@ load_dotenv()
 class GPTService:
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = "gpt-4-turbo-preview"
-        self.default_system_prompt = """You are a helpful assistant that can answer questions and help with outreach tasks.
-            You generate sequences of emails to send to a list of contacts.
-            The sequences are about recruiting people for a job.
-            Keep your responses concise and to the point.
-            Ask the users as many questions as possible but ask them one question at a time.
-            Eg - 'What is the role being recruited for?', 'What is the experience level of the target candidates?', 'How many steps are in the sequence?', 'What is the delay between the emails?','What is the target role?'
-            If the user has not provided enough information, ask them for more information.
-            If the user has provided enough information, generate a sequence of emails to send to the contacts.
-           """
+        self.model = "gpt-4o-mini"
+        self.default_system_prompt = self.default_system_prompt = """
+        You are a helpful assistant who helps create and edit email sequences for recruitment outreach for a technical/non-technical recruiter.
+        The company is a startup called "SellScale" and the product is a platform that helps companies with their sales and outreach. 
+        The user is a recruiter who is responsible for finding/sourcing candidates for the company.
+
+        Follow this user-story-driven workflow strictly:
+
+        1. Request a User Story (if not provided)
+           - As the users what they want to recruit for, the level of experience, and what are they outreaching for.
+           Make sure you ask one question at a time and wait for the user to respond before asking the next one.
+           - Example (You can ask these but not limited to these): 
+             "What is the target role?"
+             Answer: "I am looking to recruit for a mid-level Python engineer."
+             "What level of experience are you looking for?"
+             Answer: "I am looking for candidates with 3-5 years of experience."
+             "What are you outreaching for?"
+             Answer: "I am looking to outreach to candidates who are interested in a new opportunity."
+            User might give you all the information in one go so make sure you remember the information and not ask the same question again.
+
+        2. Automatic Sequence Generation
+           - Once the user story is provided, never ask for titles, content, or delays again.
+           - Use `create_sequence` to generate:
+             • Sequence title (deriving from the user story)
+             • Sequence description
+             • Steps array: for each step include step_number, step_title, content, and a default delay_days inferred from the user story.
+
+        3. Editing Existing Sequences
+            Only edit the sequence if the users asks you to and if you have the sequence_id. But never ask the user for the sequence_id.
+            Don't ask the user if they want to edit the sequence. If they want to edit the sequence, you will automatically edit it.
+           - If the user requests an edit, interpret their instructions as modifications to the user story or step structure.
+           - Call `edit_sequence` with:
+             • The existing `sequence_id` (never ask the user for it)
+             • An `updates` object describing what to change (e.g., number of steps, delays, content tweaks).
+           - Do not request content, titles, or sequence_id from the user during edits.
+
+        Always keep your questions focused on eliciting or refining the user story only. Do not break this flow."""
+        
         
         # Initialize services
         self.message_service = message_service
@@ -121,7 +149,7 @@ class GPTService:
 
             # If updating an existing sequence, let the model know the ID
             if sequence_id:
-                messages.insert(1, {
+                messages.append({
                     "role": "system",
                     "content": (
                         f"Current sequence_id: {sequence_id}. "
@@ -138,17 +166,12 @@ class GPTService:
                 })
 
             # Add the new user message
-            user_message = {
-                "role": "user",
-                "content": message
-            }
+            user_message = {"role": "user", "content": message}
             if sequence_id:
                 user_message["sequence_id"] = sequence_id
             messages.append(user_message)
 
             # Call the OpenAI API with function definitions
-            print(messages)
-
             response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
@@ -170,87 +193,31 @@ class GPTService:
 
             # Handle function calls
             if hasattr(response_message, 'function_call') and response_message.function_call:
-                function_name = response_message.function_call.name
-                function_args = json.loads(response_message.function_call.arguments)
+                fn_name = response_message.function_call.name
+                fn_args = json.loads(response_message.function_call.arguments)
 
-                if function_name == "create_sequence":
-                    sequence = self.sequence_service.create_sequence(
-                        title=function_args["title"],
-                        description=function_args["description"],
-                        steps=function_args["steps"],
-                        metadata=function_args.get("metadata", {})
+                if fn_name == "create_sequence":
+                    seq = self.sequence_service.create_sequence(
+                        title=fn_args["title"],
+                        description=fn_args["description"],
+                        steps=fn_args["steps"],
+                        metadata=fn_args.get("metadata", {})
                     )
-                    response_data = {
-                        "type": "sequence_created",
-                        "message": f"I've created a new sequence titled '{sequence['title']}' with {len(sequence['steps'])} steps.",
-                        "sequence": sequence,
-                        "role": "assistant"
-                    }
+                    response_data = {"type": "sequence_created", "message": f"Created '{seq['title']}' with {len(seq['steps'])} steps.", "sequence": seq, "role": "assistant"}
 
-                elif function_name == "edit_sequence":
-                    # Merge in the provided sequence_id if the user didn't include it
-                    edit_sequence_id = function_args.get("sequence_id") or sequence_id
-                    if not edit_sequence_id:
+                elif fn_name == "edit_sequence":
+                    es_id = fn_args.get("sequence_id") or sequence_id
+                    if not es_id:
                         raise ValueError("Sequence ID is required for editing")
-                    
-                    # Get the existing sequence to merge with updates
-                    existing_sequence = self.sequence_service.get_sequence(edit_sequence_id)
-                    if not existing_sequence:
-                        raise ValueError("Sequence not found")
-                    
-                    print(existing_sequence)
-                    print(function_args)
-                    # Merge the updates with the existing sequence
-                    updates = function_args.get("updates", {})
-                    
-                    
-                    sequence = self.sequence_service.update_sequence(
-                        sequence_id=edit_sequence_id,
-                        updates=updates
-                    )
-                    response_data = {
-                        "type": "sequence_updated",
-                        "message": f"I've updated the sequence titled '{sequence['title']}' with {len(sequence['steps'])} steps.",
-                        "sequence": sequence,
-                        "role": "assistant"
-                    }
+                    seq = self.sequence_service.update_sequence(sequence_id=es_id, updates=fn_args["updates"])
+                    response_data = {"type": "sequence_updated", "message": f"Updated '{seq['title']}' with {len(seq['steps'])} steps.", "sequence": seq, "role": "assistant"}
             else:
-                response_data = {
-                    "type": "chat",
-                    "message": content,
-                    "sequence": None,
-                    "role": "assistant"
-                }
+                response_data = {"type": "chat", "message": content, "sequence": None, "role": "assistant"}
 
             return response_data
-
         except Exception as e:
             print(f"Error in chat completion: {str(e)}")
             raise
-
-    def _prepare_messages(
-        self,
-        recent_messages: List[Dict[str, Any]],
-        user_message: str
-    ) -> List[Dict[str, str]]:
-        # unchanged...
-        messages = [{"role": "system", "content": self.default_system_prompt}]
-        for msg in reversed(recent_messages):
-            messages.append({"role": msg["role"], "content": msg["content"]})
-        messages.append({"role": "user", "content": user_message})
-        return messages
-
-    def _format_context(self, context: Dict[str, Any]) -> str:
-        formatted = []
-        for key, value in context.items():
-            formatted.append(f"{key}: {value}")
-        return "\n".join(formatted)
-
-    def format_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        formatted = []
-        for msg in messages:
-            formatted.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
-        return formatted
 
 # instantiate service
 gpt_service = GPTService()

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 import { SequenceCardProps } from '../../../../types';
 
 
@@ -112,15 +112,26 @@ const SequenceCard: React.FC<SequenceCardProps> = ({
               </button>
               <h3 className="text-lg font-semibold">{step.step_title}</h3>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-              className="text-gray-400 hover:text-white"
-            >
-              Edit
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdate({ is_deleted: true });
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs text-gray-400">Delay: {step.delay_days} days</span>
