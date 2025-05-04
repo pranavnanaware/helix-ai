@@ -179,7 +179,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         steps: newSequence.steps
       });
 
+      // Create a new array with just the new sequence
       onSequenceUpdate(sequence);
+      setSelectedSequence(sequence);
       setIsCreating(false);
       setNewSequence({
         title: '',

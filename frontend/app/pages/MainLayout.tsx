@@ -12,12 +12,12 @@ const MainLayout: React.FC = () => {
   const handleSequenceUpdate = (sequence: Sequence) => {
     setSequences(prev => {
       const existingIndex = prev.findIndex(s => s.id === sequence.id);
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = sequence;
-        return updated;
+      if (existingIndex === -1) {
+        return [sequence];
       }
-      return [...prev, sequence];
+      const updated = [...prev];
+      updated[existingIndex] = sequence;
+      return updated;
     });
   };
 

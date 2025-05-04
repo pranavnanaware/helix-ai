@@ -33,6 +33,7 @@ class GPTService:
 
         2. Automatic Sequence Generation
            - Once the user story is provided, never ask for titles, content, or delays again.
+           - Only create a new sequence if you don't have a sequence_id.
            - Use `create_sequence` to generate:
              • Sequence title (deriving from the user story)
              • Sequence description
