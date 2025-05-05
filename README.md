@@ -100,7 +100,6 @@ The backend API will be available at `http://localhost:5001`
 
 - `backend/`: Flask backend application
   - `app/`: Main application code
-  - `uploads/`: Directory for file uploads
   - `supabase_schema.sql`: Database schema
 
 ## Development
