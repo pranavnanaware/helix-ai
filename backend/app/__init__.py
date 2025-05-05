@@ -1,21 +1,24 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from app.config.supabase import init_supabase
-from app.routes.folders import bp as folders_bp
-from app.routes.files import bp as files_bp
-from app.routes.embeddings import bp as embeddings_bp
+from app.routes.chat_routes import chat_bp
+from app.routes.sequences import bp as sequence_bp
+from app.tasks.email_queue_processor import email_queue_processor
 
 def create_app():
     load_dotenv()
     
     app = Flask(__name__)
+    
+    # Configure CORS
     CORS(app, resources={
         r"/api/*": {
             "origins": ["http://localhost:3000"],
-            "methods": ["GET", "POST", "DELETE"],
-            "allow_headers": ["Content-Type"]
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
         }
     })
 
@@ -29,9 +32,11 @@ def create_app():
     # Initialize Supabase
     init_supabase()
 
+    # Start email queue processor
+    email_queue_processor.start()
+
     # Register blueprints
-    app.register_blueprint(folders_bp)
-    app.register_blueprint(files_bp)
-    app.register_blueprint(embeddings_bp)
+    app.register_blueprint(chat_bp, url_prefix='/api/chat')
+    app.register_blueprint(sequence_bp, url_prefix='/api')
 
     return app 

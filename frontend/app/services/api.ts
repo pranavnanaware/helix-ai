@@ -1,16 +1,19 @@
 import axios from 'axios';
-import { Folder, FileMetadata } from '../types';
+import { ChatResponse, Message, Session } from '../types';
 
-const API_BASE_URL = 'http://localhost:5001/api';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+
+export const api = axios.create({
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true
 });
 
-// Add a response interceptor to handle CORS errors
+// Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,156 +34,120 @@ api.interceptors.response.use(
   }
 );
 
-export const getFolders = async (): Promise<Folder[]> => {
-  try {
-    const response = await api.get<Folder[]>('/folders');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching folders:', error);
-    return [];
-  }
-};
 
-export const createFolder = async (name: string): Promise<Folder> => {
-  try {
-    const response = await api.post<Folder>('/folders', { name });
-    return response.data;
-  } catch (error) {
-    console.error('Error creating folder:', error);
-    throw error;
-  }
-};
 
-export const deleteFolder = async (folderId: string): Promise<void> => {
-  try {
-    if (!folderId) {
-      throw new Error('Folder ID is required');
-    }
-    await api.delete(`/folders/${folderId}`);
-  } catch (error) {
-    console.error('Error deleting folder:', error);
-    throw error;
-  }
-};
 
-export const uploadFile = async (folderId: string, file: File): Promise<FileMetadata> => {
+export const createSession = async (title: string, context: Record<string, any> = {}) => {
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('folder_id', folderId);
-    
-    const response = await api.post<FileMetadata>('/files', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    console.log('Creating session with:', { title, context });
+    const response = await api.post<Session>('/chat/session', {
+      title,
+      context
     });
+    console.log('Session created:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error creating chat session:', error);
     throw error;
   }
 };
 
-export const deleteFile = async (fileId: string): Promise<void> => {
+export const sendMessage = async (
+  sessionId: string,
+  message: string,
+  sequenceId: string | null
+) => {
   try {
-    await api.delete(`/files/${fileId}`);
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    throw error;
-  }
-};
-
-export const createEmbedding = async (fileId: string, embedding: number[]): Promise<void> => {
-  try {
-    await api.post('/embeddings', {
-      file_id: fileId,
-      embedding: embedding,
+    console.log('Sending message:', { sessionId, message, sequenceId });
+    const response = await api.post<ChatResponse>(`/chat/${sessionId}`, {
+      message,
+      sequenceId
     });
+    console.log('Message response:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Error creating embedding:', error);
+    console.error('Error sending message:', error);
     throw error;
   }
 };
 
-export const getEmbedding = async (fileId: string): Promise<number[]> => {
+export const getMessages = async (sessionId: string, limit: number = 10, offset: number = 0) => {
   try {
-    const response = await api.get<{ embedding: number[] }>(`/embeddings/${fileId}`);
-    return response.data.embedding;
-  } catch (error) {
-    console.error('Error getting embedding:', error);
-    throw error;
-  }
-};
-
-export const searchEmbeddings = async (queryEmbedding: number[]): Promise<{ file_id: string; similarity: number }[]> => {
-  try {
-    const response = await api.post<{ file_id: string; similarity: number }[]>('/embeddings/search', {
-      query_embedding: queryEmbedding,
+    console.log('Getting messages for session:', sessionId);
+    const response = await api.get<{ messages: Message[] }>(`/chat/${sessionId}/messages`, {
+      params: { limit, offset }
     });
-    return response.data;
+    console.log('Messages retrieved:', response.data.messages);
+    return response.data.messages;
   } catch (error) {
-    console.error('Error searching embeddings:', error);
+    console.error('Error getting messages:', error);
     throw error;
   }
 };
 
-export const getFiles = async (folderId: string): Promise<FileMetadata[]> => {
+export const getContext = async (sessionId: string) => {
   try {
-    const response = await api.get<FileMetadata[]>(`/folders/${folderId}/files`);
-    return response.data;
+    console.log('Getting context for session:', sessionId);
+    const response = await api.get<{ context: Record<string, any> }>(`/chat/${sessionId}/context`);
+    console.log('Context retrieved:', response.data.context);
+    return response.data.context;
   } catch (error) {
-    console.error('Error fetching files:', error);
-    return [];
+    console.error('Error getting context:', error);
+    throw error;
   }
 };
 
-export interface FileStatus {
-  status: 'processing' | 'vectorized' | 'error';
-  error_message?: string;
+export const updateContext = async (sessionId: string, context: Record<string, any>) => {
+  try {
+    console.log('Updating context for session:', sessionId, context);
+    const response = await api.put<{ context: Record<string, any> }>(`/chat/${sessionId}/context`, {
+      context
+    });
+    console.log('Context updated:', response.data.context);
+    return response.data.context;
+  } catch (error) {
+    console.error('Error updating context:', error);
+    throw error;
+  }
+};
+
+export const deleteSequence = async (sequenceId: string): Promise<void> => {
+  const response = await fetch(`${baseURL}/sequences/${sequenceId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete sequence');
+  }
+};
+
+interface SequencesResponse {
+  sequences: any[];
 }
 
-export const subscribeToFileStatus = (
-  fileId: string,
-  onUpdate: (status: FileStatus) => void,
-  onError?: (error: Error) => void
-) => {
-  const eventSource = new EventSource(`${API_BASE_URL}/files/${fileId}/status`);
-
-  eventSource.onmessage = (event) => {
-    const status = JSON.parse(event.data) as FileStatus;
-    onUpdate(status);
-    
-    // Close connection if file is done processing
-    if (status.status === 'vectorized' || status.status === 'error') {
-      eventSource.close();
-    }
-  };
-
-  eventSource.onerror = (error) => {
-    eventSource.close();
-    onError?.(error as unknown as Error);
-  };
-
-  return () => {
-    eventSource.close();
-  };
+export const getSequences = async (): Promise<any[]> => {
+  try {
+    const response = await api.get<SequencesResponse>('/sequences');
+    return response.data.sequences || [];
+  } catch (error) {
+    console.error('Error getting sequences:', error);
+    throw error;
+  }
 };
 
-
-
-
-
-export const apiService = {
-  // Folders
-  getFolders: getFolders,
-
-  createFolder: createFolder,
-
-  deleteFolder: deleteFolder,
-
-  getFiles: getFiles,
-
-  uploadFile: uploadFile,
-
-  deleteFile: deleteFile,
+export const updateSequenceStatus = async (sequenceId: string, isActive: boolean): Promise<any> => {
+  try {
+    const response = await api.put(`/sequences/${sequenceId}`, {
+      is_active: isActive
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating sequence status:', error);
+    throw error;
+  }
 }; 
+

@@ -1,46 +1,74 @@
 -- Enable the pgvector extension
 create extension if not exists vector;
 
--- Create users table
-create table if not exists users (
+
+
+-- Create messages table
+create table if not exists messages (
     id uuid primary key default uuid_generate_v4(),
-    email text unique not null,
-    password text not null,
+    session_id uuid not null,
+    role text not null check (role in ('system', 'user', 'assistant')),
+    content text not null,
+    metadata jsonb,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create folders table
-create table if not exists folders (
+-- Create sessions table
+create table if not exists sessions (
     id uuid primary key default uuid_generate_v4(),
-    name text not null,
-    status text not null default 'active',
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+    title text,
+    is_active boolean default true,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create files table
-create table if not exists files (
-    id uuid primary key default uuid_generate_v4(),
-    folder_id uuid references folders(id) on delete cascade not null,
-    filename text not null,
-    storage_path text not null,
-    size integer not null,
-    status text not null default 'processing',
-    error_message text,
-    vectorized_at timestamp with time zone,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+-- Create sequences table
+create table if not exists sequences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT,
+    content TEXT,
+    steps JSONB,
+    metadata JSONB,
+    is_active BOOLEAN DEFAULT true,
+    status TEXT DEFAULT 'DRAFT',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create vectors table
-create table if not exists vectors (
-    id uuid primary key default uuid_generate_v4(),
-    file_id uuid references files(id) on delete cascade not null,
-    chunk_index integer not null,
-    text text not null,
-    vector vector(384) not null,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+-- Create email_queue table
+create table if not exists email_queue (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    sequence_id UUID NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
+    step_number INTEGER NOT NULL,
+    to_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    content TEXT NOT NULL,
+    scheduled_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    template_vars JSONB DEFAULT '{}'::jsonb
+);
+
+-- Create smtp_settings table
+create table if not exists smtp_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    smtp_host TEXT NOT NULL,
+    smtp_port INTEGER NOT NULL,
+    smtp_username TEXT NOT NULL,
+    smtp_password TEXT NOT NULL,
+    use_ssl BOOLEAN DEFAULT false,
+    from_name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes
 create index if not exists idx_files_folder_id on files(folder_id);
 create index if not exists idx_vectors_file_id on vectors(file_id);
-create index if not exists idx_vectors_vector on vectors using ivfflat (vector vector_cosine_ops) with (lists = 100); 
+create index if not exists idx_vectors_vector on vectors using ivfflat (vector vector_cosine_ops) with (lists = 100);
+create index if not exists idx_messages_session_id on messages(session_id);
+create index if not exists idx_email_queue_sequence_id on email_queue(sequence_id);
+create index if not exists idx_email_queue_status on email_queue(status);
+create index if not exists idx_email_queue_scheduled_time on email_queue(scheduled_time);
+create index if not exists idx_email_queue_status_scheduled on email_queue(status, scheduled_time);
