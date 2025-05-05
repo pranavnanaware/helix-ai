@@ -180,7 +180,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         content: newSequence.steps.map(step => step.content).join('\n\n'),
         steps: newSequence.steps,
         status: 'DRAFT',
-        is_active: true
+        is_active: false
       });
 
       onSequenceUpdate(sequence);
@@ -221,9 +221,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
       const updatedSequence = await updateSequence(sequenceId, {
         ...sequence,
-        status: 'PUBLISHED'
+        status: 'PUBLISHED',
+        is_active: true
       });
-      onSequenceUpdate(updatedSequence);
+      
+      onSequenceDelete(sequenceId)
+      
       setSelectedSequence(null);
       setIsCreating(false);
       setNewSequence({

@@ -5,6 +5,7 @@ import os
 from typing import Dict, List, Any, Optional
 from app.config.supabase import supabase, SEQUENCES_TABLE
 from app.services.email_service import email_service
+from threading import Thread
 
 class SequenceService:
     @staticmethod
@@ -50,29 +51,35 @@ class SequenceService:
             # Add updated_at timestamp
             updates['updated_at'] = datetime.utcnow().isoformat()
             
-            # If sequence is being activated, queue the first email
+            # If sequence is being activated, queue the first email in background
             if updates.get('is_active') is True:
-                sequence = SequenceService.get_sequence(sequence_id)
-                if sequence and sequence.get('steps'):
-                    # Queue the first email
-
-                    for step in sequence['steps']:
-                        users = get_all_users()
-                        for user in users:
-                            print(f"Queueing email for user {user['email']}")
-                            email_service.queue_email(
-                                sequence_id=sequence_id,
-                                step_number=step.get('step_number', 1),
-                                to_email=user['email'],
-                                subject=step.get('step_title', ''),
-                                content=step.get('content', ''),
-                            delay_days=int(step.get('delay_days', 1)),
-                            user_first_name=user['first_name'],
-                            user_last_name=user['last_name'],
-                            user_title=user['title'],
-                            user_location=user['location']
-                        )
-                    
+                def queue_emails_background():
+                    try:
+                        sequence = SequenceService.get_sequence(sequence_id)
+                        if sequence and sequence.get('steps'):
+                            for step in sequence['steps']:
+                                users = get_all_users()
+                                for user in users:
+                                    print(f"Queueing email for user {user['email']}")
+                                    email_service.queue_email(
+                                        sequence_id=sequence_id,
+                                        step_number=step.get('step_number', 1),
+                                        to_email=user['email'],
+                                        subject=step.get('step_title', ''),
+                                        content=step.get('content', ''),
+                                        delay_days=int(step.get('delay_days', 1)),
+                                        user_first_name=user['first_name'],
+                                        user_last_name=user['last_name'],
+                                        user_title=user['title'],
+                                        user_location=user['location']
+                                    )
+                    except Exception as e:
+                        print(f"Error in background email queueing: {str(e)}")
+                
+                # Start the background thread
+                thread = Thread(target=queue_emails_background)
+                thread.daemon = True
+                thread.start()
             
             result = supabase.table(SEQUENCES_TABLE)\
                 .update(updates)\

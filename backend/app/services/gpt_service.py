@@ -38,6 +38,7 @@ class GPTService:
              • Sequence title (deriving from the user story)
              • Sequence description
              • Steps array: for each step include step_number, step_title, content, and a default delay_days inferred from the user story.
+             • The status should be set to `DRAFT` and `is_active` should be set to `false`.
 
         3. Editing Existing Sequences
             Only edit the sequence if the users asks you to and if you have the sequence_id. But never ask the user for the sequence_id.
@@ -47,6 +48,7 @@ class GPTService:
              • The existing `sequence_id` (never ask the user for it)
              • An `updates` object describing what to change (e.g., number of steps, delays, content tweaks).
            - Do not request content, titles, or sequence_id from the user during edits.
+           - The status should be set to `DRAFT` and `is_active` should be set to `false` unless the user asks you to publish the sequence.
 
         4. Publishing Sequences
             If the user wants to publish the sequence, call `edit_sequence` 
@@ -219,7 +221,9 @@ class GPTService:
                         title=fn_args["title"],
                         description=fn_args["description"],
                         steps=fn_args["steps"],
-                        metadata=fn_args.get("metadata", {})
+                        metadata=fn_args.get("metadata", {}),
+                        is_active=False,
+                        status="DRAFT"
                     )
                     response_data = {"type": "sequence_created", "message": f"Created '{seq['title']}' with {len(seq['steps'])} steps.", "sequence": seq, "role": "assistant"}
 
@@ -227,7 +231,7 @@ class GPTService:
                     es_id = fn_args.get("sequence_id") or sequence_id
                     if not es_id:
                         raise ValueError("Sequence ID is required for editing")
-                    seq = self.sequence_service.update_sequence(sequence_id=es_id, updates=fn_args["updates"])
+                    seq = self.sequence_service.update_sequence(sequence_id=es_id, updates=fn_args["updates"], is_active=False, status="DRAFT")
                     response_data = {"type": "sequence_updated", "message": f"Updated '{seq['title']}' with {len(seq['steps'])} steps.", "sequence": seq, "role": "assistant"}
             else:
                 response_data = {"type": "chat", "message": content, "sequence": None, "role": "assistant"}
