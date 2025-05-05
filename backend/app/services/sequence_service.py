@@ -25,7 +25,7 @@ class SequenceService:
                 'description': description,
                 'steps': steps,
                 'metadata': metadata or {},
-                'is_active': True,
+                'is_active': False,
                 'status': status,
                 'created_at': datetime.utcnow().isoformat(),
                 'updated_at': datetime.utcnow().isoformat()

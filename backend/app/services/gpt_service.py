@@ -191,6 +191,7 @@ class GPTService:
                 user_message["sequence_id"] = sequence_id
             messages.append(user_message)
 
+            print(messages)
             # Call the OpenAI API with function definitions
             response = self.client.chat.completions.create(
                 model="gpt-4",
@@ -211,6 +212,13 @@ class GPTService:
                 metadata={"sequence_id": sequence_id} if sequence_id else None
             )
 
+            self.message_service.create_message(
+                session_id=session_id,
+                role="user",
+                content=message,
+                metadata={"sequence_id": sequence_id} if sequence_id else None
+            )
+
             # Handle function calls
             if hasattr(response_message, 'function_call') and response_message.function_call:
                 fn_name = response_message.function_call.name
@@ -222,8 +230,6 @@ class GPTService:
                         description=fn_args["description"],
                         steps=fn_args["steps"],
                         metadata=fn_args.get("metadata", {}),
-                        is_active=False,
-                        status="DRAFT"
                     )
                     response_data = {"type": "sequence_created", "message": f"Created '{seq['title']}' with {len(seq['steps'])} steps.", "sequence": seq, "role": "assistant"}
 
@@ -231,7 +237,7 @@ class GPTService:
                     es_id = fn_args.get("sequence_id") or sequence_id
                     if not es_id:
                         raise ValueError("Sequence ID is required for editing")
-                    seq = self.sequence_service.update_sequence(sequence_id=es_id, updates=fn_args["updates"], is_active=False, status="DRAFT")
+                    seq = self.sequence_service.update_sequence(sequence_id=es_id, updates=fn_args["updates"])
                     response_data = {"type": "sequence_updated", "message": f"Updated '{seq['title']}' with {len(seq['steps'])} steps.", "sequence": seq, "role": "assistant"}
             else:
                 response_data = {"type": "chat", "message": content, "sequence": None, "role": "assistant"}
