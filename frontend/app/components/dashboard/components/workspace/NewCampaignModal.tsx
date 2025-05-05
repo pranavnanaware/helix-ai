@@ -68,7 +68,9 @@ const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onClose, on
       title,
       description,
       content: steps.map(step => step.content).join('\n\n'),
-      steps
+      steps,
+      is_active: false,
+      status: 'DRAFT'
     };
 
     onSequenceCreated(newSequence);
