@@ -5,6 +5,7 @@ import os
 from app.config.supabase import init_supabase
 from app.routes.chat_routes import chat_bp
 from app.routes.sequences import bp as sequence_bp
+from app.tasks.email_queue_processor import email_queue_processor
 
 def create_app():
     load_dotenv()
@@ -31,8 +32,10 @@ def create_app():
     # Initialize Supabase
     init_supabase()
 
-    # Register blueprints
+    # Start email queue processor
+    email_queue_processor.start()
 
+    # Register blueprints
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(sequence_bp, url_prefix='/api')
 

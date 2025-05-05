@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { Sequence } from '@/app/types';
 import { Toggle } from '@/components/ui/toggle';
 import { useSequence } from '@/app/hooks/useSequence';
+import { X } from 'lucide-react';
+import { deleteSequence, updateSequenceStatus } from '@/app/services/api';
 
 interface PastSequencesProps {
   sequences: Sequence[];
@@ -12,7 +14,7 @@ interface PastSequencesProps {
 
 export const PastSequences: React.FC<PastSequencesProps> = ({
   sequences,
-  onSequenceUpdate
+  onSequenceUpdate,
 }) => {
   const { listSequences } = useSequence();
   const [publishedSequences, setPublishedSequences] = useState<Sequence[]>([]);
@@ -35,10 +37,7 @@ export const PastSequences: React.FC<PastSequencesProps> = ({
 
   const handleToggleActive = async (sequence: Sequence) => {
     try {
-      const updatedSequence = {
-        ...sequence,
-        is_active: !sequence.is_active
-      };
+      const updatedSequence = await updateSequenceStatus(sequence.id, !sequence.is_active);
       onSequenceUpdate(updatedSequence);
       setPublishedSequences(prev => 
         prev.map(s => s.id === sequence.id ? updatedSequence : s)
@@ -46,6 +45,16 @@ export const PastSequences: React.FC<PastSequencesProps> = ({
     } catch (error) {
       console.error('Failed to update sequence:', error);
       alert('Failed to update sequence. Please try again.');
+    }
+  };
+
+  const handleDeleteSequence = async (sequenceId: string) => {
+    try {
+      await deleteSequence(sequenceId);
+      setPublishedSequences(prev => prev.filter(s => s.id !== sequenceId));
+    } catch (error) {
+      console.error('Failed to delete sequence:', error);
+      alert('Failed to delete sequence. Please try again.');
     }
   };
 
@@ -60,13 +69,20 @@ export const PastSequences: React.FC<PastSequencesProps> = ({
           >
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-semibold text-white">{sequence.title}</h2>
-              <Toggle
-                pressed={sequence.is_active}
-                onPressedChange={() => handleToggleActive(sequence)}
-                className="data-[state=on]:bg-green-500"
+              <div className="flex items-center gap-4">
+                <Toggle
+                  pressed={sequence.is_active}
+                  onPressedChange={() => {
+                    handleToggleActive(sequence)}}
+                className={`${sequence.is_active ? 'bg-red-500' : 'bg-green-500'}`}
               >
-                {sequence.is_active ? 'Active' : 'Inactive'}
+                {sequence.is_active ? 'Stop' : 'Start'}
               </Toggle>
+              <X size={20} className='text-red-500 hover:text-red-800 cursor-pointer' 
+              onClick={() =>{
+                handleDeleteSequence(sequence.id)}}
+              />
+            </div>
             </div>
             <p className="text-sm text-gray-400 mb-2">{sequence.description}</p>
             <div className="space-y-2">

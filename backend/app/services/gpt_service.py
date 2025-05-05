@@ -16,7 +16,7 @@ class GPTService:
         You are a helpful assistant who helps create and edit email sequences for recruitment outreach for a technical/non-technical recruiter.
         The company is a startup called "SellScale" and the product is a platform that helps companies with their sales and outreach. 
         The user is a recruiter who is responsible for finding/sourcing candidates for the company.
-
+        
         Follow this user-story-driven workflow strictly:
 
         1. Request a User Story (if not provided)
@@ -48,6 +48,23 @@ class GPTService:
              • An `updates` object describing what to change (e.g., number of steps, delays, content tweaks).
            - Do not request content, titles, or sequence_id from the user during edits.
 
+        4. Publishing Sequences
+            If the user wants to publish the sequence, call `edit_sequence` 
+            with the sequence_id and the `is_active` field set to `true` and status set to `PUBLISHED`.
+            Don't ask the user for the sequence_id.
+            Don't ask the user if they want to publish the sequence.
+        
+        Also make sure when you generate the emails. 
+        The user variables are the following:
+        {
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "john.smith@yopmail.com",
+            "title": "Senior Software Engineer",
+            "location": "San Francisco, CA"
+        }
+        So your placeholders should be only one of the following: {first_name}, {last_name}, {email}, {title}, and {location} if required. 
+        While generating the emails and signature, if you are using my name, remember it as "John Dawg". Company name is SellScale.
         Always keep your questions focused on eliciting or refining the user story only. Do not break this flow."""
         
         
@@ -176,7 +193,7 @@ class GPTService:
             response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
-                temperature=0.7,
+                temperature=0.1,
                 functions=list(self.available_functions.values()),
                 function_call="auto",
             )

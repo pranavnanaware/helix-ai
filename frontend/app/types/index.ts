@@ -51,7 +51,7 @@ export interface SequenceCardProps {
   onUpdate: (updates: Partial<Sequence['steps'][0]>) => void;
 }
 
-export type Page = 'workspace' | 'past-sequences' | 'settings';
+export type Page = 'workspace' | 'published-campaigns' | 'settings';
 
 export interface DashboardProps {
   sequences: Sequence[];

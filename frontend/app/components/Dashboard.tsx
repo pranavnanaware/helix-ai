@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Header } from './dashboard/components/Header';
 import { Workspace } from './dashboard/components/workspace/page';
-import { SettingsView } from './dashboard/components/settings/SettingsView';
 import { PastSequences } from './dashboard/components/past-sequences/page';
 import { Sequence, Page } from '../types';
 
@@ -36,15 +35,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             onSequenceDelete={onSequenceDelete}
           />
         );
-      case 'past-sequences':
+      case 'published-campaigns':
         return (
           <PastSequences
             sequences={sequences}
             onSequenceUpdate={onSequenceUpdate}
           />
         );
-      case 'settings':
-        return <SettingsView />;
       default:
         return null;
     }

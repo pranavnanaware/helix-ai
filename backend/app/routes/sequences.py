@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.sequence_service import sequence_service
+from app.services.sequence_service import sequence_service, publish_sequence
 from app.services.gpt_service import gpt_service
 
 bp = Blueprint('sequences', __name__)
@@ -56,7 +56,6 @@ def update_sequence(sequence_id: str):
         if not existing_sequence:
             return jsonify({"error": "Sequence not found"}), 404
             
-        # Validate steps if provided
         if 'steps' in data:
             if not isinstance(data['steps'], list):
                 return jsonify({"error": "Steps must be an array"}), 400
@@ -88,19 +87,13 @@ def get_sequence(sequence_id: str):
         return jsonify({"error": str(e)}), 500
 
 @bp.route('/sequences/<sequence_id>', methods=['DELETE'])
-def delete_sequence(sequence_id: str):
+def delete_sequence(sequence_id):
+    """Delete a sequence and its associated email queue entries."""
     try:
-        # Validate sequence exists
-        existing_sequence = sequence_service.get_sequence(sequence_id)
-        if not existing_sequence:
-            return jsonify({"error": "Sequence not found"}), 404
-            
-        # Soft delete by setting is_active to false
-        sequence = sequence_service.delete_sequence(sequence_id)
-        return jsonify({"message": "Sequence deleted successfully"})
-        
+        sequence_service.delete_sequence(sequence_id)
+        return jsonify({'message': 'Sequence deleted successfully'})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/sequences', methods=['GET'])
 def list_sequences():
@@ -151,4 +144,13 @@ def edit_sequence_with_gpt(sequence_id: str):
         return jsonify(result)
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500 
+        return jsonify({"error": str(e)}), 500
+
+@bp.route('/sequences/<sequence_id>/publish', methods=['POST'])
+def publish_sequence_route(sequence_id):
+    """Publish a sequence and queue emails for all users."""
+    try:
+        sequence = publish_sequence(sequence_id)
+        return jsonify(sequence)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 

@@ -1,13 +1,6 @@
 -- Enable the pgvector extension
 create extension if not exists vector;
 
--- Create users table
-create table if not exists users (
-    id uuid primary key default uuid_generate_v4(),
-    email text unique not null,
-    password text not null,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
 
 
 -- Create messages table
@@ -43,8 +36,39 @@ create table if not exists sequences (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create email_queue table
+create table if not exists email_queue (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    sequence_id UUID NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
+    step_number INTEGER NOT NULL,
+    to_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    content TEXT NOT NULL,
+    scheduled_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    template_vars JSONB DEFAULT '{}'::jsonb
+);
+
+-- Create smtp_settings table
+create table if not exists smtp_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    smtp_host TEXT NOT NULL,
+    smtp_port INTEGER NOT NULL,
+    smtp_username TEXT NOT NULL,
+    smtp_password TEXT NOT NULL,
+    use_ssl BOOLEAN DEFAULT false,
+    from_name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes
 create index if not exists idx_files_folder_id on files(folder_id);
 create index if not exists idx_vectors_file_id on vectors(file_id);
 create index if not exists idx_vectors_vector on vectors using ivfflat (vector vector_cosine_ops) with (lists = 100);
 create index if not exists idx_messages_session_id on messages(session_id);
+create index if not exists idx_email_queue_sequence_id on email_queue(sequence_id);
+create index if not exists idx_email_queue_status on email_queue(status);
+create index if not exists idx_email_queue_scheduled_time on email_queue(scheduled_time);
+create index if not exists idx_email_queue_status_scheduled on email_queue(status, scheduled_time);

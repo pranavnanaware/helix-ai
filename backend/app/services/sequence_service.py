@@ -1,7 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
+import json
+import os
 from typing import Dict, List, Any, Optional
 from app.config.supabase import supabase, SEQUENCES_TABLE
+from app.services.email_service import email_service
 
 class SequenceService:
     @staticmethod
@@ -44,9 +47,32 @@ class SequenceService:
             # Ensure we don't update the ID
             if 'id' in updates:
                 del updates['id']
-            
             # Add updated_at timestamp
             updates['updated_at'] = datetime.utcnow().isoformat()
+            
+            # If sequence is being activated, queue the first email
+            if updates.get('is_active') is True:
+                sequence = SequenceService.get_sequence(sequence_id)
+                if sequence and sequence.get('steps'):
+                    # Queue the first email
+
+                    for step in sequence['steps']:
+                        users = get_all_users()
+                        for user in users:
+                            print(f"Queueing email for user {user['email']}")
+                            email_service.queue_email(
+                                sequence_id=sequence_id,
+                                step_number=step.get('step_number', 1),
+                                to_email=user['email'],
+                                subject=step.get('step_title', ''),
+                                content=step.get('content', ''),
+                            delay_days=int(step.get('delay_days', 1)),
+                            user_first_name=user['first_name'],
+                            user_last_name=user['last_name'],
+                            user_title=user['title'],
+                            user_location=user['location']
+                        )
+                    
             
             result = supabase.table(SEQUENCES_TABLE)\
                 .update(updates)\
@@ -100,18 +126,142 @@ class SequenceService:
         
     @staticmethod
     def delete_sequence(sequence_id: str) -> None:
-        """Delete a sequence by ID."""
+        """Delete a sequence and its associated email queue entries."""
         try:
-            result = supabase.table(SEQUENCES_TABLE)\
+            # Delete sequence
+            result = supabase.table('sequences')\
                 .delete()\
                 .eq('id', sequence_id)\
                 .execute()
-            
+                
             if not result.data:
                 raise Exception("Failed to delete sequence")
-            return result.data
+                
+            # Delete associated email queue entries
+            supabase.table('email_queue')\
+                .delete()\
+                .eq('sequence_id', sequence_id)\
+                .execute()
+                
         except Exception as e:
             raise Exception(f"Error deleting sequence: {str(e)}")
+
+def get_all_users() -> List[Dict[str, Any]]:
+    """Get all users from the JSON file."""
+    try:
+        users_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'users.json')
+        with open(users_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        raise Exception(f"Error reading users: {str(e)}")
+
+def get_sequence(sequence_id: str) -> Dict[str, Any]:
+    """Get a sequence by ID."""
+    try:
+        result = supabase.table('sequences').select('*').eq('id', sequence_id).execute()
+        if not result.data:
+            raise Exception(f"Sequence with ID {sequence_id} not found")
+        return result.data[0]
+    except Exception as e:
+        raise Exception(f"Error getting sequence: {str(e)}")
+
+def update_sequence_status(sequence_id: str, status: str) -> Dict[str, Any]:
+    """Update sequence status."""
+    try:
+        result = supabase.table('sequences')\
+            .update({'status': status, 'updated_at': datetime.utcnow().isoformat()})\
+            .eq('id', sequence_id)\
+            .execute()
+        if not result.data:
+            raise Exception(f"Failed to update sequence status")
+        return result.data[0]
+    except Exception as e:
+        raise Exception(f"Error updating sequence status: {str(e)}")
+
+def queue_sequence_emails(sequence_id: str) -> None:
+    """Queue emails for all users in the sequence."""
+    try:
+        print(f"Starting to queue emails for sequence {sequence_id}")
+        sequence = get_sequence(sequence_id)
+        print(f"Found sequence: {sequence}")
+        
+        if not sequence.get('steps'):
+            raise Exception("Sequence has no steps")
+            
+        # Validate steps structure
+        for step in sequence['steps']:
+            if not isinstance(step, dict):
+                raise Exception("Each step must be a dictionary")
+            if 'content' not in step:
+                raise Exception("Each step must have a 'content' field")
+            if 'delay_days' not in step:
+                raise Exception("Each step must have a 'delay_days' field")
+            if 'subject' not in step:
+                raise Exception("Each step must have a 'subject' field")
+            
+        users = get_all_users()
+        print(f"Found {len(users)} users")
+        
+        current_time = datetime.utcnow()
+        
+        for user in users:
+            if not user.get('email'):
+                print(f"Skipping user {user.get('first_name')} {user.get('last_name')} - no email address")
+                continue
+                
+            print(f"Processing user: {user['email']}")
+            
+            for step_number, step in enumerate(sequence['steps'], 1):
+                scheduled_time = current_time + timedelta(days=step.get('delay_days', 0))
+                
+                # Replace placeholders in content
+                content = step.get('content', '')
+                content = content.replace('{first_name}', user['first_name'])
+                content = content.replace('{last_name}', user['last_name'])
+                content = content.replace('{title}', user.get('title', ''))
+                content = content.replace('{location}', user.get('location', ''))
+                
+                email_data = {
+                    'sequence_id': sequence_id,
+                    'step_number': step_number,
+                    'to_email': user['email'],
+                    'subject': step.get('subject', ''),
+                    'content': content,
+                    'scheduled_time': scheduled_time.isoformat(),
+                    'status': 'PENDING',
+                    'created_at': current_time.isoformat(),
+                    'updated_at': current_time.isoformat()
+                }
+                
+                print(f"Queueing email for step {step_number}: {email_data}")
+                
+                result = supabase.table('email_queue').insert(email_data).execute()
+                if not result.data:
+                    raise Exception(f"Failed to queue email for user {user['email']}")
+                print(f"Successfully queued email for {user['email']}")
+                    
+    except Exception as e:
+        print(f"Error in queue_sequence_emails: {str(e)}")
+        raise Exception(f"Error queueing sequence emails: {str(e)}")
+
+def publish_sequence(sequence_id: str) -> Dict[str, Any]:
+    """Publish a sequence and queue emails for all users."""
+    try:
+        print(f"Starting to publish sequence {sequence_id}")
+        # Update sequence status to ACTIVE
+        sequence = update_sequence_status(sequence_id, 'ACTIVE')
+        print(f"Updated sequence status to ACTIVE: {sequence}")
+        
+        # Queue emails for all users
+        queue_sequence_emails(sequence_id)
+        print("Successfully queued all emails")
+        
+        return sequence
+    except Exception as e:
+        print(f"Error in publish_sequence: {str(e)}")
+        # If anything fails, set status back to DRAFT
+        update_sequence_status(sequence_id, 'DRAFT')
+        raise Exception(f"Error publishing sequence: {str(e)}")
 
 # Create a singleton instance
 sequence_service = SequenceService()
