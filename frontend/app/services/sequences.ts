@@ -1,13 +1,8 @@
 import { Sequence, CreateSequenceData, UpdateSequenceData } from '@/types/sequence';
+import { ListSequencesParams } from '../types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
-export interface ListSequencesParams {
-  limit?: number;
-  offset?: number;
-  active_only?: boolean;
-  status?: string;
-}
 
 export const sequenceApi = {
   create: async (data: CreateSequenceData): Promise<Sequence> => {
@@ -78,40 +73,6 @@ export const sequenceApi = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to list sequences');
-    }
-
-    return response.json();
-  },
-
-  generate: async (prompt: string): Promise<Sequence> => {
-    const response = await fetch(`${API_BASE_URL}/sequences/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to generate sequence');
-    }
-
-    return response.json();
-  },
-
-  editWithGPT: async (sequenceId: string, prompt: string): Promise<Sequence> => {
-    const response = await fetch(`${API_BASE_URL}/sequences/${sequenceId}/edit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to edit sequence with GPT');
     }
 
     return response.json();

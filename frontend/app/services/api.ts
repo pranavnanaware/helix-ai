@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ChatResponse, Message, Session } from '../types';
+import { ChatResponse, Message, Session, SequencesResponse } from '../types';
 
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
@@ -111,43 +111,4 @@ export const updateContext = async (sessionId: string, context: Record<string, a
   }
 };
 
-export const deleteSequence = async (sequenceId: string): Promise<void> => {
-  const response = await fetch(`${baseURL}/sequences/${sequenceId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to delete sequence');
-  }
-};
-
-interface SequencesResponse {
-  sequences: any[];
-}
-
-export const getSequences = async (): Promise<any[]> => {
-  try {
-    const response = await api.get<SequencesResponse>('/sequences');
-    return response.data.sequences || [];
-  } catch (error) {
-    console.error('Error getting sequences:', error);
-    throw error;
-  }
-};
-
-export const updateSequenceStatus = async (sequenceId: string, isActive: boolean): Promise<any> => {
-  try {
-    const response = await api.put(`/sequences/${sequenceId}`, {
-      is_active: isActive
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error updating sequence status:', error);
-    throw error;
-  }
-}; 
 

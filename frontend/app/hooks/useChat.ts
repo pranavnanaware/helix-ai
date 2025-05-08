@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createSession, sendMessage, getMessages } from '../services/api';
 import { Message, Sequence, ChatMessage } from '../types'; 
-import { useSequence } from './useSequence';
 
 interface UseChatProps {
   onSequenceCreated?: (sequence: Sequence) => void;
@@ -12,12 +11,11 @@ export const useChat = ({ onSequenceCreated }: UseChatProps = {}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { createSequence, generateSequence } = useSequence();
 
   useEffect(() => {
     const initializeChat = async () => {
       try {
-        console.log('Initializing chat...');
+        
         const session = await createSession(
           'Recruiting Assistant Chat',
           {

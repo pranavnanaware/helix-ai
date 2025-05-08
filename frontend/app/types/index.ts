@@ -62,3 +62,15 @@ export interface HeaderProps {
   currentPage: Page;
   setCurrentPage: (page: Page) => void;
 }
+
+
+export interface SequencesResponse {
+  sequences: any[];
+}
+
+export interface ListSequencesParams {
+  limit?: number;
+  offset?: number;
+  active_only?: boolean;
+  status?: string;
+}

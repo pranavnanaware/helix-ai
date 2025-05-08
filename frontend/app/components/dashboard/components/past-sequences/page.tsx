@@ -5,7 +5,7 @@ import { Sequence } from '@/app/types';
 import { Toggle } from '@/components/ui/toggle';
 import { useSequence } from '@/app/hooks/useSequence';
 import { X } from 'lucide-react';
-import { deleteSequence, updateSequenceStatus } from '@/app/services/api';
+import { sequenceApi } from '@/app/services/sequences';
 
 interface PastSequencesProps {
   sequences: Sequence[];
@@ -37,7 +37,7 @@ export const PastSequences: React.FC<PastSequencesProps> = ({
 
   const handleToggleActive = async (sequence: Sequence) => {
     try {
-      const updatedSequence = await updateSequenceStatus(sequence.id, !sequence.is_active);
+      const updatedSequence = await sequenceApi.update(sequence.id, {is_active: sequence.is_active});
       onSequenceUpdate(updatedSequence);
       setPublishedSequences(prev => 
         prev.map(s => s.id === sequence.id ? updatedSequence : s)
@@ -50,7 +50,7 @@ export const PastSequences: React.FC<PastSequencesProps> = ({
 
   const handleDeleteSequence = async (sequenceId: string) => {
     try {
-      await deleteSequence(sequenceId);
+      await sequenceApi.delete(sequenceId);
       setPublishedSequences(prev => prev.filter(s => s.id !== sequenceId));
     } catch (error) {
       console.error('Failed to delete sequence:', error);

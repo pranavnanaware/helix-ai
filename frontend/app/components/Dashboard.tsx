@@ -15,11 +15,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
-  sequences,
-  onSequenceUpdate,
-  selectedSequence,
-  setSelectedSequence,
-  onSequenceDelete
+  ...props  
 }) => {
   const [currentPage, setCurrentPage] = useState<Page>('workspace');
 
@@ -28,18 +24,13 @@ const Dashboard: React.FC<DashboardProps> = ({
       case 'workspace':
         return (
           <Workspace
-            sequences={sequences}
-            onSequenceUpdate={onSequenceUpdate}
-            selectedSequence={selectedSequence}
-            setSelectedSequence={setSelectedSequence}
-            onSequenceDelete={onSequenceDelete}
+            {...props}
           />
         );
       case 'published-campaigns':
         return (
           <PastSequences
-            sequences={sequences}
-            onSequenceUpdate={onSequenceUpdate}
+            {...props}
           />
         );
       default:

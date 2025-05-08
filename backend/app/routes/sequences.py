@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.sequence_service import sequence_service, publish_sequence
+from app.services.sequence_service import sequence_service
 from app.services.gpt_service import gpt_service
 
 bp = Blueprint('sequences', __name__)
@@ -145,12 +145,3 @@ def edit_sequence_with_gpt(sequence_id: str):
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@bp.route('/sequences/<sequence_id>/publish', methods=['POST'])
-def publish_sequence_route(sequence_id):
-    """Publish a sequence and queue emails for all users."""
-    try:
-        sequence = publish_sequence(sequence_id)
-        return jsonify(sequence)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500 

@@ -15,6 +15,7 @@ const MainLayout: React.FC = () => {
       if (existingIndex === -1) {
         return [sequence];
       }
+
       const updated = [...prev];
       updated[existingIndex] = sequence;
       return updated;
@@ -29,15 +30,15 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <div style={{ width: '35%', borderRight: '1px solid #ccc', padding: '10px' }}>
+    <div className="flex h-screen">
+      <div className="w-[35%] border-r border-gray-300 p-4">
         <ChatInterface 
           sequences={sequences} 
           onSequenceCreated={handleSequenceUpdate} 
           selectedSequence={selectedSequence}
         />
       </div>
-      <div style={{ width: '65%' }}>
+      <div className="w-[65%]">
         <Dashboard 
           sequences={sequences} 
           onSequenceUpdate={handleSequenceUpdate} 

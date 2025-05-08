@@ -80,33 +80,7 @@ export const useSequence = () => {
     }
   };
 
-  const generateSequence = async (prompt: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const sequence = await sequenceApi.generate(prompt);
-      return sequence;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate sequence');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const editSequenceWithGPT = async (sequenceId: string, prompt: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const sequence = await sequenceApi.editWithGPT(sequenceId, prompt);
-      return sequence;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to edit sequence with GPT');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return {
     isLoading,
@@ -116,7 +90,5 @@ export const useSequence = () => {
     getSequence,
     deleteSequence,
     listSequences,
-    generateSequence,
-    editSequenceWithGPT,
   };
 }; 
